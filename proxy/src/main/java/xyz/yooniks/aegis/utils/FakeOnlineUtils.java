@@ -1,0 +1,37 @@
+package xyz.yooniks.aegis.utils;
+
+import java.util.logging.Level;
+import lombok.Getter;
+import net.md_5.bungee.BungeeCord;
+
+/**
+ * @author Leymooo
+ */
+public class FakeOnlineUtils {
+
+  @Getter
+  private static FakeOnlineUtils instance;
+  private boolean enabled = false;
+  private float multiple = 1.0f;
+
+  public FakeOnlineUtils() {
+    instance = this;
+    String boost = System.getProperty("onlineBooster");
+    if (boost == null) {
+      return;
+    }
+    try {
+      multiple = Float.parseFloat(boost);
+    } catch (NumberFormatException e) {
+      BungeeCord.getInstance().getLogger()
+          .log(Level.WARNING, "[Aegis] Can't boost fake online-player count: {0}", e.getMessage());
+      return;
+    }
+    enabled = true;
+  }
+
+  public int getFakeOnline(int online) {
+    return enabled ? Math.round(online * multiple) : online;
+  }
+
+}

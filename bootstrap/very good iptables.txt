@@ -1,0 +1,107 @@
+#!/bin/bash
+# Drop Various Attacks
+iptables -A INPUT -p tcp --tcp-flags FIN,SYN FIN,SYN -j DROP
+iptables -A INPUT -p tcp --tcp-flags FIN,SYN,RST,PSH,ACK,URG FIN -j DROP
+iptables -A INPUT -p tcp --tcp-flags FIN,SYN,RST,PSH,ACK,URG FIN,PSH,URG -j DROP
+iptables -A INPUT -p tcp --tcp-flags FIN,SYN,RST,PSH,ACK,URG FIN,SYN,RST,PSH,ACK,URG -j DROP
+iptables -A INPUT -p tcp --tcp-flags FIN,SYN,RST,PSH,ACK,URG NONE -j DROP
+iptables -A INPUT -p tcp --tcp-flags SYN,RST SYN,RST -j DROP
+iptables -A OUTPUT -p udp -j DROP
+ip6tables -A OUTPUT -p udp -j DROP
+iptables -A INPUT -p tcp --destination-port 8080 -j DROP
+iptables -t mangle -A PREROUTING -p tcp ! --syn -m conntrack --ctstate NEW -j DROP
+iptables -A INPUT -p tcp --tcp-flags SYN,ECN,CWR -j DROP
+
+# Prevent source address 127.0.0.1 from sending data through various interfaces
+iptables -A INPUT -p all -s localhost -i wlan0 -j DROP
+iptables -A INPUT -p all -s localhost -i eth0 -j DROP
+
+# Drop Fragments
+iptables -A INPUT -f -j DROP
+
+# Drop ICMP (Ping) Packets
+iptables -A INPUT -p icmp -m icmp --icmp-type 8 -j DROP
+
+# Do not respond to pings
+iptables -A OUTPUT -p icmp --icmp-type echo-reply -j DROP
+
+# Drop Invalid Packets
+iptables -A INPUT -m state --state INVALID -j DROP
+iptables -A FORWARD -m state --state INVALID -j DROP
+iptables -A OUTPUT -m state --state INVALID -j DROP
+
+# Drop LAND (Local Area Network Denial) Packets
+# In this attack, a packet is spoofed to make the source address appear as the IP-address of the target.  In other words, the source and destination IP-addresses are the same.
+iptables -A INPUT -s 127.0.0.0/8 -j DROP
+
+# Drop Null Packets
+iptables -A INPUT -p tcp --tcp-flags ALL NONE -j DROP
+
+# Drop excessive RST Packets to avoid Smurf-Attacks
+iptables -A INPUT -p tcp -m tcp --tcp-flags RST RST -m limit --limit 2/second --limit-burst 2 -j ACCEPT
+
+## Drop Smurf-Attacks
+# Smurf-Attacks send a large number of ICMP "echo broadcast" packets with a spoofed source IP-address being the target's IP-address. The machines on the network recieve this broadcast message and reply to the target with "echo reply" packets. One way to block this attack is to block all the ICMP packets. However, if that cannot be done, then a limit may be applied to the ICMP packets allowed.
+iptables -A INPUT -p icmp -m icmp --icmp-type address-mask-request -j DROP
+iptables -A INPUT -p icmp -m icmp --icmp-type timestamp-request -j DROP
+iptables -A INPUT -p icmp -m limit --limit 2/second --limit-burst 2 -j ACCEPT
+iptables -A INPUT -p icmp -j DROP
+
+# Drop Spank DoS Attacks
+# Computers answer TCP packets that are coming from a multicast-address. This can be used for the Spank DoS Attack or stealth-scans.
+iptables -A INPUT -s 224.0.0.0/4 -j DROP
+iptables -A INPUT -d 224.0.0.0/4 -j DROP
+iptables -A INPUT -s 240.0.0.0/5 -j DROP
+iptables -A INPUT -d 240.0.0.0/5 -j DROP
+iptables -A INPUT -s 0.0.0.0/8 -j DROP
+iptables -A INPUT -d 0.0.0.0/8 -j DROP
+iptables -A INPUT -d 239.255.255.0/24 -j DROP
+iptables -A INPUT -d 255.255.255.255 -j DROP
+
+# Drop SYN Flood Packets
+# This is a type of DOS (Denial Of Service) attack.
+iptables -A INPUT -p tcp -m state --state NEW -m limit --limit 2/second --limit-burst 2 -j ACCEPT
+iptables -A INPUT -p tcp -m state --state NEW -j DROP
+
+# Drop XMAS Packets
+# A Christmas-Tree Packet is a packet that has all flags of any protocol set. The FIN, URG, and PSH bits in the TCP header are set. This packet is called an "Xmas Tree" packet because all the fields of header are "lightened up".
+iptables -A INPUT -p tcp --tcp-flags ALL FIN,PSH,URG -j DROP
+iptables -A INPUT -p tcp --tcp-flags ALL ALL -j DROP
+
+# Prevent Port-scans
+
+# Use only one of the two given port-scan lock-out systems
+# Lock-out systems that attempted a port-scan (lock lasts a day)
+iptables -A INPUT -m recent --name portscan --rcheck --seconds 86400 -j DROP
+iptables -A FORWARD -m recent --name portscan --rcheck --seconds 86400 -j DROP
+iptables -A INPUT -m recent --name portscan --remove
+iptables -A FORWARD -m recent --name portscan --remove
+# Lock-out systems that attempted a port-scan (lock lasts a week)
+iptables -A INPUT -m recent --name portscan --rcheck --seconds 604800 -j DROP
+iptables -A FORWARD -m recent --name portscan --rcheck --seconds 604800 -j DROP
+iptables -A INPUT -m recent --name portscan --remove
+iptables -A FORWARD -m recent --name portscan --remove
+
+# Log Port-Scan Attempts
+iptables -A INPUT -m recent --name portscan --set -j LOG --log-prefix "Portscan:"
+iptables -A INPUT -m recent --name portscan --set -j DROP
+iptables -A FORWARD -m recent --name portscan --set -j LOG --log-prefix "Portscan:"
+iptables -A FORWARD -m recent --name portscan --set -j DROP
+
+# Block Packets used by Port-Scans
+iptables -A INPUT -p tcp --tcp-flags ACK,FIN FIN -j DROP
+iptables -A INPUT -p tcp --tcp-flags ACK,PSH PSH -j DROP
+iptables -A INPUT -p tcp --tcp-flags ACK,URG URG -j DROP
+iptables -A INPUT -p tcp --tcp-flags ALL ALL -j DROP
+iptables -A INPUT -p tcp --tcp-flags ALL FIN -j DROP
+iptables -A INPUT -p tcp --tcp-flags ALL FIN,PSH,URG -j DROP
+iptables -A INPUT -p tcp --tcp-flags ALL NONE -j DROP
+iptables -A INPUT -p tcp --tcp-flags ALL SYN,FIN -j DROP
+iptables -A INPUT -p tcp --tcp-flags ALL SYN,RST,ACK,FIN,URG -j DROP
+iptables -A INPUT -p tcp --tcp-flags ALL URG,PSH,FIN -j DROP
+iptables -A INPUT -p tcp --tcp-flags ALL URG,PSH,SYN,FIN -j DROP
+iptables -A INPUT -p tcp --tcp-flags FIN,RST FIN,RST -j DROP
+iptables -A INPUT -p tcp --tcp-flags SYN,ACK,FIN,RST RST -m limit --limit 1/s -j ACCEPT
+iptables -A INPUT -p tcp --tcp-flags SYN,ACK SYN,ACK -m state --state NEW -j DROP
+iptables -A INPUT -p tcp --tcp-flags SYN,FIN SYN,FIN -j DROP
+iptables -A INPUT -p tcp --tcp-flags SYN,RST SYN,RST -j DROP

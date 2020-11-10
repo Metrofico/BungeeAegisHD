@@ -1,0 +1,88 @@
+#Do you need support? Please add me on discord: yooniks#0289
+#
+#Remember that you have to put your license key in AEGIS/CONFIG.yml
+#aegis-settings:
+#  license: "your key here"       <- check Aegis/config.yml
+#PM me on discord: yooniks#0289 to get your license key if you have bought Aegis.
+#
+
+
+##AntiVPN verification!
+anti-vpn:
+  #You can add your own checkers! It's very easy to use that!
+  second-check-ip-teoh:
+    url: "https://ip.teoh.io/api/vpn/{ADDRESS}"
+    #Instead of >  \"   < please use %x
+    #expected-result: "\"vpn_or_proxy\": \"yes\""
+    #Expected result to block address, when it is "yes" then we block that connection
+    expected-result: "yes"
+    expected-type: contains
+    timeout: 5000
+    limitable: true
+    requests-limit: 148
+  third-check-proxycheck:
+    url: "https://proxycheck.io/v2/{ADDRESS}"
+    #Instead of >  \"   < please use %x   %x is replaced with "
+    #expected-result: "\"vpn_or_proxy\": \"yes\""
+    expected-result: "yes"
+    expected-type: contains
+    timeout: 5000
+    limitable: true
+    requests-limit: 148
+  first-check-ip-intel:
+    #Available variables:
+    #{ADDRESS} - player's address
+    url: "http://check.getipintel.net/check.php?ip={ADDRESS}&contact=yooniksyooniks@gmail.com&flags=m"
+    #If http website responds us with "1" content then the ip is VPN/proxy, so we block the connection
+    expected-result: "1"
+    #Should the expected-result EQUALS "1" or only contains "1"?
+    expected-type: equals
+    timeout: 5000
+    #If you have paid key for the website you can probably increase limit or completely stop it
+    limitable: true
+    requests-limit: 148
+
+shells:
+  ##
+  # Login shells START
+  ##
+  #If there are too many connections from similar nicknames then other similar nicknames cannot join
+  nicks-length:
+    enabled: true
+    #After how many similar names do we block next similar names?
+    sensibility: 3
+    kick-message: "&e&lAe&6&lgis &8&l>> &cToo many players with similar nicknames are logging in.. Please wait a minute."
+    #Since how many connections per second should we use this "shell/check" to authenticate player connection?
+    max-cps: 3
+  #ping-needed:  #Changed to "some-pings-needed" in 8.1.2!
+  #  enabled: true
+  #
+  #  kick-message: "&8&l<< &e&lAe&6&lgis &8&l>>\n&cAdd our server to the servers list and refresh it!\n\n&cYou have to see our motd and then you can join.\n&cDo not use &6DIRRECT CONNECT&c until you do it."
+  some-pings-needed:
+    enabled: true
+    needed-pings: 3
+    #This "shell"/protection will be enabled only if connections per second are bigger than 2. We also recommend to use GateKeeper plugin on lobby server! Great antiproxy and antivpn.
+    max-cps: 2
+    kick-message: "&cAegis &8[AntiBot&8]\n&7You have &c{CURRENT}&8/&c{NEEDED}&7 pings to join the server.\n&7To get pings you have to add our server to &cSERVER LIST&7 and refresh it {NEEDED} times.\n&7You have to see our MOTD on servers list 3 times!"
+  #Name match, blocked nicknames
+  nicks-match:
+    enabled: true
+    pattern: "^(MCSpam|MCStorm|MCDrop|McDrop|McSpam|McStorm)"
+    kick-message: "&cAegis &8> &7Your nickname is &cblocked&7! Please change your nickname."
+    max-cps: 0
+  connection-throttle:
+    enabled: true
+    #Player has to wait 10 seconds every each login.
+    #If he tries to join and he immediately disconnects and try to rejoin - he is forced to wait 10 second before next login.
+    delay: 10
+    kick-message: "&e&lAe&6&lgis &8&l>> &cPlease wait &6a few seconds&c before next connection!"
+  #Max accounts per ip
+  max-accounts-per-ip:
+    enabled: true
+    #If there are more than 1 accounts per one ip = next connections will be disconnected
+    max-accounts: 1
+    kick-message: "&cAegis &8> &7Too many accounts with your ip address!"
+  #Must reconnect
+  reconnect:
+    enabled: true
+    kick-message: "&cAegis &8> &7Please join again, account has been &6created&7!"

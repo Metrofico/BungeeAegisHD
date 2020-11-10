@@ -1,0 +1,58 @@
+If your server is being attacked with AuthSmasher (new exploit) please set:
+
+in Aegis/config.yml:
+
+
+aegis-settings:
+  advanced-checks:
+    block-new-connections-when-cps-is-higher-than: -1
+
+Change from -1 to something like 200.
+
+So it should look like that:
+
+aegis-settings:
+  advanced-checks:
+    block-new-connections-when-cps-is-higher-than: 200
+
+It will block every NEW connection to your server if connections per second are higher than 200, that is the only way we can prevent auth smasher now. It won't block players that are verified by falling/drop and captcha check built-in Aegis, so it's very good, players that were on server before will be able to re-login during authsmasher attack, new players, unfortunately - no :c 
+
+
+
+If your server is CRACKED only - like.. you allow only cracked players and you don't have premium accounts on your server (like your server is online-mode=false and you don't have any premium login plugin like FastLogin or JPremium) then please set:
+
+aegis-settings:
+  advanced-checks:
+    #This value is false by default.
+    remove-encryption: true
+
+/\ It will prevent CryptoCrashers,AuthSmasher and other shit.
+
+Since 7.2 We also added Aegis/blacklist.txt where you can put blacklisted/blocked proxies/ips that you just want to block/prevent, it will avoid and abort a lot of bad connections.
+
+
+New IPTables that i recommend to run on your vps in root:
+
+Iptables must be installed, command for installing iptables:
+apt-get install iptables
+
+First rule:
+iptables -I INPUT -p tcp --dport 25565 -m state --state NEW -m limit --limit 300/s -j ACCEPT
+
+Second:
+iptables --new-chain RATE-LIMIT
+
+iptables --append INPUT --match conntrack --ctstate NEW --jump RATE-LIMIT
+
+iptables --append RATE-LIMIT --match limit --limit 300/sec --limit-burst 20 --jump ACCEPT
+
+
+With aegis you also have to install IPSet:
+
+apt-get install ipset
+ipset create -! blacklist hash:ip hashsize 15000
+
+iptables -I INPUT -m set --match-set blacklist src -j DROP
+iptables -I FORWARD -m set --match-set blacklist src -j DROP
+
+And I recommend blacklist-mode in Aegis/config.yml to 0 if you installed IPSet correctly!

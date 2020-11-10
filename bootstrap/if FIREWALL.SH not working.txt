@@ -1,0 +1,3 @@
+If firewall.sh is not working then change $ipset and $iptables to ipset and iptables, without $! The same in Aegis/config.yml in blacklist section!
+
+You have to execute only firewall.sh and "7.3 AuthSmasher.txt" rules, other .txt are not important!
